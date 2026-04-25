@@ -1,0 +1,15 @@
+[package]
+name = "yield-curves"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Yield curve interpolation and parametric fitting (Nelson-Siegel, Svensson) with zero dependencies"
+repository = "https://github.com/mqmalagris/yield-curves"
+readme = "README.md"
+keywords = ["finance", "yield-curve", "nelson-siegel", "svensson", "interpolation"]
+categories = ["finance", "science", "mathematics"]
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[dependencies]
