@@ -14,6 +14,10 @@ pub enum YieldCurveError {
     /// Parametric fit (Nelson-Siegel, Svensson) did not converge or produced
     /// implausible parameters.
     FitFailed(String),
+    /// Forward-rate computation received `t1 >= t2`, non-finite times, or
+    /// produced a non-finite result (e.g. taking a negative discount factor
+    /// to a fractional power).
+    InvalidTimeRange(String),
 }
 
 impl fmt::Display for YieldCurveError {
@@ -24,6 +28,7 @@ impl fmt::Display for YieldCurveError {
             }
             Self::InvalidPoint(msg) => write!(f, "invalid point: {msg}"),
             Self::FitFailed(msg) => write!(f, "fit failed to converge: {msg}"),
+            Self::InvalidTimeRange(msg) => write!(f, "invalid time range: {msg}"),
         }
     }
 }

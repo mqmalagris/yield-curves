@@ -8,9 +8,17 @@
 //! - [`LinearCurve`] — piecewise linear, transparent baseline.
 //! - [`CubicSplineCurve`] — natural cubic spline (C² continuous), Thomas
 //!   algorithm, no linear-algebra dependencies.
+//! - [`PchipCurve`] — Fritsch-Carlson monotone cubic Hermite (C¹). Use when
+//!   cubic spline produces overshoots or when monotonicity must be preserved.
 //! - [`NelsonSiegelCurve`] — Nelson-Siegel (1987) 4-parameter parametric fit.
 //! - [`SvenssonCurve`] — Nelson-Siegel-Svensson (1994) 6-parameter parametric
 //!   fit (BCB/ANBIMA/ECB standard for sovereign yield curves).
+//!
+//! # Discount factors and forward rates
+//!
+//! See the [`compounding`] module for free-standing helpers that turn
+//! interpolated rates into discount factors and implied forward rates under
+//! any of: continuous, periodic, or simple compounding.
 //!
 //! # Conventions
 //!
@@ -50,8 +58,10 @@
 //! assert!((13.4..=13.6).contains(&rate_5y));
 //! ```
 
+pub mod compounding;
 pub mod linear;
 pub mod nelson_siegel;
+pub mod pchip;
 pub mod spline;
 pub mod svensson;
 
@@ -59,9 +69,11 @@ mod error;
 mod nelder_mead;
 mod validate;
 
+pub use compounding::{discount_factor, forward_rate, Compounding};
 pub use error::YieldCurveError;
 pub use linear::LinearCurve;
 pub use nelson_siegel::NelsonSiegelCurve;
+pub use pchip::PchipCurve;
 pub use spline::CubicSplineCurve;
 pub use svensson::SvenssonCurve;
 
