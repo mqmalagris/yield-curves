@@ -127,6 +127,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -161,12 +162,34 @@ jobs:
           git tag "v${{ needs.detect.outputs.version }}"
           git push origin "v${{ needs.detect.outputs.version }}"
 
+      - name: Build changelog from commits since previous tag
+        id: changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 2nd entry by creation date is the previous tag (1st is the one we just pushed).
+          PREV_TAG=$(git tag --sort=-creatordate | sed -n '2p' || true)
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="$PREV_TAG..HEAD"
+            HEADER="### Changes since $PREV_TAG"
+          else
+            # First-ever release tag — list everything up to HEAD (capped).
+            RANGE="HEAD"
+            HEADER="### Changes"
+          fi
+          {
+            echo "header=$HEADER"
+            echo 'log<<EOF'
+            git log --pretty=format:"- %s (%h)" "$RANGE" | head -n 50
+            echo
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.detect.outputs.version }}
           name: v${{ needs.detect.outputs.version }}
-          generate_release_notes: true
           files: |
             target/package/*.crate
             provenance/*.intoto.jsonl
@@ -174,6 +197,10 @@ jobs:
             ## yield-curves v${{ needs.detect.outputs.version }}
 
             Published to crates.io: https://crates.io/crates/yield-curves/${{ needs.detect.outputs.version }}
+
+            ${{ steps.changelog.outputs.header }}
+
+            ${{ steps.changelog.outputs.log }}
 
             ### Verifying SLSA provenance
 
