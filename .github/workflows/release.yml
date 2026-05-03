@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Compare Cargo.toml version vs HEAD~1
+      - name: Compare Cargo.toml version vs latest on crates.io
         id: diff
         shell: bash
         run: |
@@ -38,14 +38,17 @@ jobs:
             echo "::error::cannot read version from Cargo.toml"
             exit 1
           fi
-          if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            OLD=$(git show HEAD~1:Cargo.toml | grep -m1 '^version =' | sed -E 's/.*"([^"]+)".*/\1/' || echo "")
-          else
-            OLD=""
-          fi
-          echo "old=$OLD"
-          echo "new=$NEW"
-          if [ "$OLD" != "$NEW" ]; then
+          # Query crates.io for the latest published version. Fallback to ""
+          # if crate is brand new (404) or if jq misses the field.
+          PUBLISHED=$(curl -fsSL "https://crates.io/api/v1/crates/yield-curves" \
+            -H "User-Agent: yield-curves-release-workflow" \
+            | jq -r '.crate.max_stable_version // ""' || echo "")
+          echo "cargo_toml=$NEW"
+          echo "crates_io=$PUBLISHED"
+          # Publish whenever Cargo.toml differs from what's on crates.io.
+          # cargo publish enforces monotonic version on the registry side, so
+          # downgrades fail loudly if a non-bump slips through.
+          if [ "$PUBLISHED" != "$NEW" ]; then
             echo "should_release=true" >> "$GITHUB_OUTPUT"
             echo "version=$NEW" >> "$GITHUB_OUTPUT"
           else
@@ -131,6 +134,14 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
 
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
+
+      # Download artefatos depois do publish — cargo publish recusa se houver
+      # arquivos não commitados na working tree, então só baixamos pra
+      # anexar no GitHub Release.
       - name: Download package
         uses: actions/download-artifact@v4
         with:
@@ -142,11 +153,6 @@ jobs:
         with:
           name: ${{ needs.provenance.outputs.provenance-name }}
           path: provenance
-
-      - name: Publish to crates.io
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
 
       - name: Create git tag
         run: |
