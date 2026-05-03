@@ -1,13 +1,19 @@
 [package]
 name = "yield-curves"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
+rust-version = "1.75"
 license = "MIT OR Apache-2.0"
-description = "Yield curve interpolation and parametric fitting (Nelson-Siegel, Svensson) with zero dependencies"
+description = "Yield curve interpolation, parametric fitting (Nelson-Siegel, Svensson, PCHIP), compounding helpers, and bond pricing — zero dependencies"
 repository = "https://github.com/mqmalagris/yield-curves"
 readme = "README.md"
-keywords = ["finance", "yield-curve", "nelson-siegel", "svensson", "interpolation"]
+keywords = ["finance", "yield-curve", "nelson-siegel", "svensson", "bond"]
 categories = ["finance", "science", "mathematics"]
+exclude = [
+    ".github/",
+    ".leankg/",
+    "leankg.yaml",
+]
 
 [lints.rust]
 unsafe_code = "forbid"

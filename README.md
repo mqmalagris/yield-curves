@@ -44,6 +44,39 @@ Functions live outside the `YieldCurveInterpolator` trait on purpose: rate
 unit (% vs decimal) and compounding convention are caller concerns, not
 properties of the curve shape.
 
+## Bond pricing *(new in 0.3)*
+
+The `bond` module computes price, duration, convexity and par yield from a
+list of cash flows plus a YTM. All inputs in **decimal form** (`0.07`, not
+`7`). Only `Continuous` and `Periodic(n)` compounding are accepted —
+`Simple` is rejected because it isn't standard for multi-period bonds.
+
+```rust
+use std::num::NonZeroU32;
+use yield_curves::bond::{macaulay_duration, modified_duration, convexity, par_yield, CashFlow};
+use yield_curves::compounding::Compounding;
+use yield_curves::{CubicSplineCurve, YieldCurveInterpolator};
+
+// 4-year, 5% annual coupon, principal 100, semi-annual payments.
+let flows: Vec<CashFlow> = (1..=8)
+    .map(|k| CashFlow {
+        t_years: f64::from(k) / 2.0,
+        amount: if k == 8 { 102.5 } else { 2.5 },
+    })
+    .collect();
+
+let ytm = 0.05;
+let comp = Compounding::Periodic(NonZeroU32::new(2).unwrap());
+
+let d_mac = macaulay_duration(&flows, ytm, comp).unwrap();
+let d_mod = modified_duration(&flows, ytm, comp).unwrap();
+let c     = convexity(&flows, ytm, comp).unwrap();
+
+// Par yield: coupon that prices a 5y semi-annual bond at par given a curve.
+let curve = CubicSplineCurve::fit(&[(1.0, 0.05), (5.0, 0.055), (10.0, 0.06)]).unwrap();
+let par   = par_yield(&curve, 5.0, NonZeroU32::new(2).unwrap(), comp).unwrap();
+```
+
 No dependency on `ndarray`, `argmin`, or any numerical crate. The Nelder-Mead
 simplex optimizer used by the parametric fits is implemented internally.
 
@@ -106,6 +139,21 @@ Both parametric methods perform a sanity check on the fitted parameters and
 return [`YieldCurveError::FitFailed`] if the optimizer lands on an implausible
 mode (typical symptom with few anchors or anchors that don't match the
 parametric shape). In that case, fall back to the cubic spline.
+
+## Supply chain — SLSA Level 3
+
+Releases are built by GitHub Actions and ship a SLSA Level 3 provenance
+attestation alongside the `.crate` artifact on every GitHub Release tag.
+Verify with [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier):
+
+```bash
+slsa-verifier verify-artifact \
+  --provenance-path yield-curves-provenance.intoto.jsonl \
+  --source-uri github.com/mqmalagris/yield-curves \
+  yield-curves-<version>.crate
+```
+
+The same `.crate` is what is uploaded to crates.io.
 
 ## License
 

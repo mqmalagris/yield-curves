@@ -1,0 +1,183 @@
+name: Release to crates.io + SLSA
+
+# Auto-publish flow:
+# 1. Push to main → detect job compares Cargo.toml `version` between HEAD and HEAD~1.
+# 2. If version bumped → build+package job runs full tests, packages the .crate, hashes it.
+# 3. SLSA generic generator (Level 3) creates an in-toto attestation from the hash.
+# 4. Publish job uploads to crates.io, tags v<version>, and attaches the .crate
+#    file plus the SLSA provenance to a GitHub Release.
+#
+# Required repo secret: CARGO_REGISTRY_TOKEN (scope: publish-update on crate `yield-curves`).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: detect version bump
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.diff.outputs.should_release }}
+      version: ${{ steps.diff.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Compare Cargo.toml version vs HEAD~1
+        id: diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW=$(grep -m1 '^version =' Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ -z "$NEW" ]; then
+            echo "::error::cannot read version from Cargo.toml"
+            exit 1
+          fi
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            OLD=$(git show HEAD~1:Cargo.toml | grep -m1 '^version =' | sed -E 's/.*"([^"]+)".*/\1/' || echo "")
+          else
+            OLD=""
+          fi
+          echo "old=$OLD"
+          echo "new=$NEW"
+          if [ "$OLD" != "$NEW" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "version=$NEW" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: build + package
+    needs: detect
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+      filename: ${{ steps.hash.outputs.filename }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Verify tests pass before publishing
+        run: cargo test --all
+
+      - name: Dry-run publish
+        run: cargo publish --dry-run
+
+      - name: Package
+        run: cargo package --no-verify
+
+      - name: Hash artifact for SLSA
+        id: hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd target/package
+          FILE=$(ls *.crate)
+          HASH_LINE=$(sha256sum "$FILE")
+          echo "filename=$FILE" >> "$GITHUB_OUTPUT"
+          echo "hashes=$(echo -n "$HASH_LINE" | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: crate-package
+          path: target/package/*.crate
+          retention-days: 7
+          if-no-files-found: error
+
+  provenance:
+    name: SLSA Level 3 provenance
+    needs: [detect, build]
+    if: needs.detect.outputs.should_release == 'true'
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: ${{ needs.build.outputs.hashes }}
+      provenance-name: yield-curves-provenance.intoto.jsonl
+      upload-assets: false
+
+  publish:
+    name: publish to crates.io + GitHub Release
+    needs: [detect, build, provenance]
+    if: needs.detect.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: crate-package
+          path: target/package
+
+      - name: Download SLSA provenance
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.provenance.outputs.provenance-name }}
+          path: provenance
+
+      - name: Publish to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish
+
+      - name: Create git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ needs.detect.outputs.version }}"
+          git push origin "v${{ needs.detect.outputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.detect.outputs.version }}
+          name: v${{ needs.detect.outputs.version }}
+          generate_release_notes: true
+          files: |
+            target/package/*.crate
+            provenance/*.intoto.jsonl
+          body: |
+            ## yield-curves v${{ needs.detect.outputs.version }}
+
+            Published to crates.io: https://crates.io/crates/yield-curves/${{ needs.detect.outputs.version }}
+
+            ### Verifying SLSA provenance
+
+            This release ships a SLSA Level 3 provenance attestation generated by
+            [`slsa-github-generator`](https://github.com/slsa-framework/slsa-github-generator).
+            Verify with:
+
+            ```bash
+            slsa-verifier verify-artifact \
+              --provenance-path yield-curves-provenance.intoto.jsonl \
+              --source-uri github.com/${{ github.repository }} \
+              yield-curves-${{ needs.detect.outputs.version }}.crate
+            ```

@@ -20,6 +20,11 @@
 //! interpolated rates into discount factors and implied forward rates under
 //! any of: continuous, periodic, or simple compounding.
 //!
+//! # Bond pricing
+//!
+//! See the [`bond`] module for price, Macaulay/modified duration, convexity
+//! and par yield computed from a cash-flow schedule plus a YTM.
+//!
 //! # Conventions
 //!
 //! The x-axis is **time in years**. Convert from calendar/business days at
@@ -58,6 +63,7 @@
 //! assert!((13.4..=13.6).contains(&rate_5y));
 //! ```
 
+pub mod bond;
 pub mod compounding;
 pub mod linear;
 pub mod nelson_siegel;
