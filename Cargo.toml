@@ -4,8 +4,10 @@ version = "0.3.0"
 edition = "2021"
 rust-version = "1.75"
 license = "MIT OR Apache-2.0"
-description = "Yield curve interpolation, parametric fitting (Nelson-Siegel, Svensson, PCHIP), compounding helpers, and bond pricing — zero dependencies"
+description = "Pure-Rust yield curve interpolation (Nelson-Siegel, Svensson, PCHIP) and bond pricing. Zero deps."
 repository = "https://github.com/mqmalagris/yield-curves"
+homepage = "https://github.com/mqmalagris/yield-curves"
+documentation = "https://docs.rs/yield-curves"
 readme = "README.md"
 keywords = ["finance", "yield-curve", "nelson-siegel", "svensson", "bond"]
 categories = ["finance", "science", "mathematics"]
@@ -13,6 +15,9 @@ exclude = [
     ".github/",
     ".leankg/",
     "leankg.yaml",
+    "docs/LAUNCH-KIT.md",
+    "docs/ROADMAP.md",
+    "scripts/",
 ]
 
 [lints.rust]

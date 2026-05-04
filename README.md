@@ -1,7 +1,18 @@
 # yield-curves
 
+[![CI](https://github.com/mqmalagris/yield-curves/actions/workflows/ci.yml/badge.svg)](https://github.com/mqmalagris/yield-curves/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/yield-curves.svg)](https://crates.io/crates/yield-curves)
+[![docs.rs](https://img.shields.io/docsrs/yield-curves)](https://docs.rs/yield-curves)
+[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/yield-curves.svg)](#license)
+[![MSRV: 1.75](https://img.shields.io/badge/MSRV-1.75-blue.svg)](#)
+[![SLSA Level 3](https://slsa.dev/images/gh-badge-level3.svg)](https://slsa.dev)
+
 Yield curve interpolation and parametric fitting for fixed income, in pure
 Rust with **zero dependencies**.
+
+Built for quant developers and risk engineers who need curve fitting without
+QuantLib's C++ build chain or a Python numerical stack as a transitive
+dependency. Small, auditable, embeddable in WASM and serverless cold starts.
 
 ## Interpolation methods
 

@@ -1,2 +1,8 @@
 target/
 Cargo.lock
+
+# Internal docs — not pushed
+docs/LAUNCH-KIT.md
+docs/ROADMAP.md
+
+.leankg
