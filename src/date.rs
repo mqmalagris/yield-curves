@@ -120,25 +120,37 @@ impl Period {
     /// `n` days.
     #[must_use]
     pub fn days(n: i32) -> Self {
-        Self { num: n, unit: Unit::Days }
+        Self {
+            num: n,
+            unit: Unit::Days,
+        }
     }
 
     /// `n` weeks (7 days each).
     #[must_use]
     pub fn weeks(n: i32) -> Self {
-        Self { num: n, unit: Unit::Weeks }
+        Self {
+            num: n,
+            unit: Unit::Weeks,
+        }
     }
 
     /// `n` calendar months.
     #[must_use]
     pub fn months(n: i32) -> Self {
-        Self { num: n, unit: Unit::Months }
+        Self {
+            num: n,
+            unit: Unit::Months,
+        }
     }
 
     /// `n` calendar years.
     #[must_use]
     pub fn years(n: i32) -> Self {
-        Self { num: n, unit: Unit::Years }
+        Self {
+            num: n,
+            unit: Unit::Years,
+        }
     }
 }
 
@@ -409,7 +421,11 @@ mod tests {
         let end = Date::new(2100, 12, 31).unwrap().serial();
         for s in start..=end {
             let (y, m, d) = civil_from_days(s);
-            assert_eq!(days_from_civil(y, m, d), s, "roundtrip failed at serial {s}");
+            assert_eq!(
+                days_from_civil(y, m, d),
+                s,
+                "roundtrip failed at serial {s}"
+            );
         }
     }
 
@@ -472,7 +488,10 @@ mod tests {
         assert_eq!(jan31 + Period::months(1), Date::new(2021, 2, 28).unwrap());
 
         let jan31_leap = Date::new(2020, 1, 31).unwrap();
-        assert_eq!(jan31_leap + Period::months(1), Date::new(2020, 2, 29).unwrap());
+        assert_eq!(
+            jan31_leap + Period::months(1),
+            Date::new(2020, 2, 29).unwrap()
+        );
 
         // Crossing a year boundary.
         assert_eq!(
