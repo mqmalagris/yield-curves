@@ -25,6 +25,15 @@
 //! See the [`bond`] module for price, Macaulay/modified duration, convexity
 //! and par yield computed from a cash-flow schedule plus a YTM.
 //!
+//! # Dates, day counts, calendars, and schedules
+//!
+//! The [`date`], [`daycount`], [`calendar`], and [`schedule`] modules form a
+//! zero-dependency date toolkit for building a curve's time axis: a proleptic
+//! Gregorian [`Date`], ISDA day-count conventions ([`DayCount`]), holiday
+//! calendars ([`Calendar`], [`Brazil`], [`Target2`]) with business-day
+//! adjustment and the BUS/252 year fraction, and coupon/pillar
+//! [`Schedule`] generation.
+//!
 //! # Conventions
 //!
 //! The x-axis is **time in years**. Convert from calendar/business days at
