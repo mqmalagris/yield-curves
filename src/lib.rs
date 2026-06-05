@@ -71,6 +71,7 @@ pub mod daycount;
 pub mod linear;
 pub mod nelson_siegel;
 pub mod pchip;
+pub mod schedule;
 pub mod spline;
 pub mod svensson;
 
@@ -88,6 +89,7 @@ pub use error::YieldCurveError;
 pub use linear::LinearCurve;
 pub use nelson_siegel::NelsonSiegelCurve;
 pub use pchip::PchipCurve;
+pub use schedule::{third_wednesday, DateGeneration, Schedule, ScheduleError, StubConvention};
 pub use spline::CubicSplineCurve;
 pub use svensson::SvenssonCurve;
 
