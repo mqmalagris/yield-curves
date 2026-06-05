@@ -64,6 +64,7 @@
 //! ```
 
 pub mod bond;
+pub mod calendar;
 pub mod compounding;
 pub mod date;
 pub mod daycount;
@@ -77,6 +78,9 @@ mod error;
 mod nelder_mead;
 mod validate;
 
+pub use calendar::{
+    easter, Brazil, BusinessDayConvention, Calendar, JoinCalendar, JoinRule, Target2, WeekendsOnly,
+};
 pub use compounding::{discount_factor, forward_rate, Compounding};
 pub use date::{Date, DateError, Period, Unit, Weekday};
 pub use daycount::DayCount;
