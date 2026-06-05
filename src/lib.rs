@@ -66,6 +66,7 @@
 pub mod bond;
 pub mod compounding;
 pub mod date;
+pub mod daycount;
 pub mod linear;
 pub mod nelson_siegel;
 pub mod pchip;
@@ -78,6 +79,7 @@ mod validate;
 
 pub use compounding::{discount_factor, forward_rate, Compounding};
 pub use date::{Date, DateError, Period, Unit, Weekday};
+pub use daycount::DayCount;
 pub use error::YieldCurveError;
 pub use linear::LinearCurve;
 pub use nelson_siegel::NelsonSiegelCurve;
