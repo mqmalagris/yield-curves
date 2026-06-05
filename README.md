@@ -91,6 +91,47 @@ let par   = par_yield(&curve, 5.0, NonZeroU32::new(2).unwrap(), comp).unwrap();
 No dependency on `ndarray`, `argmin`, or any numerical crate. The Nelder-Mead
 simplex optimizer used by the parametric fits is implemented internally.
 
+## Dates, calendars & schedules *(new in 0.4)*
+
+A zero-dependency date toolkit so you can build the curve's time axis without
+pulling `chrono` / `time` or QuantLib:
+
+- **`date`** — proleptic Gregorian `Date` (stored as an `i32` serial),
+  `Period`, `Weekday`, end-of-month-aware arithmetic.
+- **`daycount`** — `DayCount` year fractions per ISDA 2006 §4.16: ACT/360,
+  ACT/365F, ACT/ACT-ISDA, 30/360 (Bond Basis), 30E/360.
+- **`calendar`** — `Calendar` trait with business-day adjustment, `Brazil`
+  (ANBIMA national), `Target2`, `WeekendsOnly`, `JoinCalendar`, and the
+  **BUS/252** year fraction.
+- **`schedule`** — coupon/pillar date generation with stubs, end-of-month
+  rolling, and IMM (third-Wednesday) dates.
+
+```rust
+use yield_curves::{Brazil, BusinessDayConvention, Calendar, Date, DayCount, Period, Schedule};
+
+let cal = Brazil;
+let trade = Date::new(2025, 1, 2).unwrap();
+
+// Roll a 6-month maturity onto a B3 business day, then get its BUS/252 time.
+let maturity = cal.adjust(trade + Period::months(6), BusinessDayConvention::Following);
+let t = cal.year_fraction_252(trade, maturity); // business days / 252
+
+// Day-count year fraction for an accrual period.
+let accrual = DayCount::Act365Fixed.year_fraction(trade, maturity);
+
+// Semiannual coupon schedule for a 2-year bond.
+let sched = Schedule::builder(
+    Date::new(2025, 1, 15).unwrap(),
+    Date::new(2027, 1, 15).unwrap(),
+    Period::months(6),
+)
+.calendar(Box::new(Brazil))
+.convention(BusinessDayConvention::ModifiedFollowing)
+.build()
+.unwrap();
+assert_eq!(sched.len(), 5);
+```
+
 ## Quick start
 
 ```rust
@@ -115,8 +156,10 @@ let (beta0, beta1, beta2, tau) = ns.parameters();
 
 ## Conventions
 
-The x-axis is **time in years**. Convert from calendar / business days at
-the call site:
+The x-axis is **time in years**. As of 0.4 the `calendar` and `daycount`
+modules do this conversion for you (e.g. `Brazil.year_fraction_252(trade,
+maturity)` or `DayCount::Act365Fixed.year_fraction(a, b)`); the manual factors
+are:
 
 | Market                     | Convention            |
 | -------------------------- | --------------------- |
